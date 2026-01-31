@@ -66,8 +66,14 @@ brew install libsndfile ffmpeg enchant
 - Download and install [libsndfile](http://www.mega-nerd.com/libsndfile/)
 
 ### Step 3: Create Virtual Environment (Recommended)
+
+> **Note:** Make sure you're inside the `Indic-TTS` directory before proceeding!
+
 ```bash
-# Using venv
+# Verify you're in the correct directory (should show Indic-TTS)
+pwd
+
+# Using venv (run from inside the Indic-TTS directory)
 python -m venv tts-env
 source tts-env/bin/activate  # Linux/macOS
 # OR
@@ -79,7 +85,11 @@ conda activate tts-env
 ```
 
 ### Step 4: Install Python Dependencies
+
+> **Note:** You should still be in the `Indic-TTS` directory from Step 1.
+
 ```bash
+# Navigate to the inference folder (from Indic-TTS root)
 cd inference
 pip install -r requirements-ml.txt -r requirements-utils.txt
 ```
