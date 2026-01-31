@@ -32,12 +32,195 @@ Deep learning based text-to-speech (TTS) systems have been evolving rapidly with
 ## Results
 <img src='images/evaluation.png' width=1024>
 
-## Setup:
-### Environment Setup:
+## 🚀 Quick Start: Run Locally
+
+If you want to quickly run inference on your laptop without training, follow these steps:
+
+### Prerequisites
+- Python 3.9 or higher
+- pip (Python package manager)
+- ~8GB disk space for models
+- (Optional) NVIDIA GPU with CUDA for faster inference
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/AI4Bharat/Indic-TTS.git
+cd Indic-TTS
+```
+
+### Step 2: Install System Dependencies
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get update
+sudo apt-get install -y libsndfile1-dev ffmpeg enchant
+```
+
+**macOS:**
+```bash
+brew install libsndfile ffmpeg enchant
+```
+
+**Windows:**
+- Install [FFmpeg](https://ffmpeg.org/download.html) and add to PATH
+- Download and install [libsndfile](http://www.mega-nerd.com/libsndfile/)
+
+### Step 3: Create Virtual Environment (Recommended)
+```bash
+# Using venv
+python -m venv tts-env
+source tts-env/bin/activate  # Linux/macOS
+# OR
+tts-env\Scripts\activate  # Windows
+
+# OR using conda
+conda create -n tts-env python=3.9
+conda activate tts-env
+```
+
+### Step 4: Install Python Dependencies
+```bash
+cd inference
+pip install -r requirements-ml.txt -r requirements-utils.txt
+```
+
+### Step 5: Download Pre-trained Models
+Download the model checkpoints from the [releases page](https://github.com/AI4Bharat/Indic-TTS/releases/tag/v1-checkpoints-release).
+
+```bash
+# Create checkpoints directory
+mkdir -p checkpoints
+
+# Download and extract models for the language(s) you need
+# Example for Hindi:
+wget https://github.com/AI4Bharat/Indic-TTS/releases/download/v1-checkpoints-release/hi.zip
+unzip hi.zip -d checkpoints/
+```
+
+**Available languages:** `as` (Assamese), `bn` (Bengali), `brx` (Bodo), `en` (English), `gu` (Gujarati), `hi` (Hindi), `kn` (Kannada), `ml` (Malayalam), `mni` (Manipuri), `mr` (Marathi), `or` (Odia), `pa` (Punjabi), `raj` (Rajasthani), `ta` (Tamil), `te` (Telugu)
+
+### Step 6: Run Inference
+
+**Option A: Using Python Script**
+
+Create a file `test_tts.py`:
+```python
+import io
+from scipy.io.wavfile import write as scipy_wav_write
+from TTS.utils.synthesizer import Synthesizer
+from src.inference import TextToSpeechEngine
+
+# Initialize model for your language (e.g., Hindi)
+lang = "hi"
+model = Synthesizer(
+    tts_checkpoint=f'checkpoints/{lang}/fastpitch/best_model.pth',
+    tts_config_path=f'checkpoints/{lang}/fastpitch/config.json',
+    tts_speakers_file=f'checkpoints/{lang}/fastpitch/speakers.pth',
+    tts_languages_file=None,
+    vocoder_checkpoint=f'checkpoints/{lang}/hifigan/best_model.pth',
+    vocoder_config=f'checkpoints/{lang}/hifigan/config.json',
+    encoder_checkpoint="",
+    encoder_config="",
+    use_cuda=False,  # Set to True if you have a GPU
+)
+
+# Setup TTS Engine
+engine = TextToSpeechEngine(
+    models={lang: model},
+    enable_denoiser=False  # Set to True for better quality (requires more dependencies)
+)
+
+# Generate speech
+raw_audio = engine.infer_from_text(
+    input_text="नमस्ते, मैं एक टेक्स्ट टू स्पीच सिस्टम हूं।",
+    lang=lang,
+    speaker_name="female"  # or "male"
+)
+
+# Save audio file
+byte_io = io.BytesIO()
+scipy_wav_write(byte_io, 22050, raw_audio)
+with open("output.wav", "wb") as f:
+    f.write(byte_io.getvalue())
+
+print("Audio saved to output.wav")
+```
+
+Run it:
+```bash
+python test_tts.py
+```
+
+**Option B: Using REST API Server**
+```bash
+pip install -r requirements-server.txt
+python server.py
+# Server runs at http://localhost:5050
+```
+
+Then send POST requests to generate speech:
+```bash
+curl -X POST "http://localhost:5050/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": [{"source": "नमस्ते दुनिया"}],
+    "config": {
+      "gender": "female",
+      "language": {"sourceLanguage": "hi"}
+    }
+  }'
+```
+
+**Option C: Using TTS CLI directly**
+```bash
+python -m TTS.bin.synthesize \
+    --text "नमस्ते दुनिया" \
+    --model_path checkpoints/hi/fastpitch/best_model.pth \
+    --config_path checkpoints/hi/fastpitch/config.json \
+    --vocoder_path checkpoints/hi/hifigan/best_model.pth \
+    --vocoder_config_path checkpoints/hi/hifigan/config.json \
+    --out_path output.wav
+```
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **ModuleNotFoundError: No module named 'TTS'**
+   ```bash
+   pip install TTS
+   ```
+
+2. **CUDA out of memory**
+   - Set `use_cuda=False` in the Synthesizer
+   - Or reduce batch size if doing batch inference
+
+3. **Error with enchant/aspell**
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install enchant aspell-en
+   # macOS
+   brew install enchant aspell
+   ```
+
+4. **FileNotFoundError for checkpoint files**
+   - Ensure models are downloaded and extracted to the correct `checkpoints/<lang>/` directory
+   - Check that the directory structure is: `checkpoints/<lang>/fastpitch/` and `checkpoints/<lang>/hifigan/`
+
+5. **librosa/soundfile errors**
+   ```bash
+   pip install librosa soundfile
+   ```
+
+---
+
+## 🏋️ Training Your Own Models
+
+### Environment Setup (for Training):
 ```
 # 1. Create environment
 sudo apt-get install libsndfile1-dev ffmpeg enchant
-conda create -n tts-env
+conda create -n tts-env python=3.9
 conda activate tts-env
 
 # 2. Setup PyTorch
@@ -76,18 +259,5 @@ cp TTS/TTS/bin/synthesize.py to the local TTS installation # added multiple outp
 1. Set the configuration with [main.py](./main.py), [vocoder.py](./vocoder.py), [configs](./configs) and [run.sh](./run.sh). Make sure to update the CUDA_VISIBLE_DEVICES in all these files.
 2. Train and test by executing `sh run.sh`
 
-### Inference:
-Trained model weight and config files can be downloaded at [this link.](https://github.com/AI4Bharat/Indic-TTS/releases/tag/v1-checkpoints-release)
-
-```
-python3 -m TTS.bin.synthesize --text <TEXT> \
-    --model_path <LANG>/fastpitch/best_model.pth \
-    --config_path <LANG>/config.json \
-    --vocoder_path <LANG>/hifigan/best_model.pth \
-    --vocoder_config_path <LANG>/hifigan/config.json \
-    --out_path <OUT_PATH>
-```
-
 ---
 Code Reference: [https://github.com/coqui-ai/TTS](https://github.com/coqui-ai/TTS)
-`
