@@ -1,7 +1,11 @@
 import io
 
+from scipy.io.wavfile import write as scipy_wav_write
 from TTS.utils.synthesizer import Synthesizer
 from src.inference import TextToSpeechEngine
+
+# Default sampling rate for TTS output (matches model output sample rate from src/inference.py)
+DEFAULT_SAMPLING_RATE = 22050
 
 # Initialize Hindi model
 
@@ -54,7 +58,7 @@ byte_io = io.BytesIO()
 scipy_wav_write(byte_io, DEFAULT_SAMPLING_RATE, hindi_raw_audio)
 
 with open("hindi_audio.wav", "wb") as f:
-    f.write(byte_io.read())
+    f.write(byte_io.getvalue())
 
 # Tamil TTS inference
 
@@ -67,4 +71,4 @@ byte_io = io.BytesIO()
 scipy_wav_write(byte_io, DEFAULT_SAMPLING_RATE, tamil_raw_audio)
 
 with open("tamil_audio.wav", "wb") as f:
-    f.write(byte_io.read())
+    f.write(byte_io.getvalue())
