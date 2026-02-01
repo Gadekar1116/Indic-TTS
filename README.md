@@ -161,14 +161,27 @@ Run it:
 python test_tts.py
 ```
 
-**Option B: Using REST API Server**
+**Option B: Using REST API Server (Recommended for Web Interface)**
+
+> **Note:** If you have only downloaded one or a few language packs, use `server_single_lang.py` instead of `server.py`.
+
 ```bash
+# Install server dependencies
 pip install -r requirements-server.txt
-python server.py
-# Server runs at http://localhost:5050
+
+# Run server with ONLY Hindi (or your downloaded language)
+python server_single_lang.py --langs hi --cpu
+
+# For GPU support (faster, requires CUDA)
+python server_single_lang.py --langs hi
+
+# For multiple languages
+python server_single_lang.py --langs hi ta en
 ```
 
-Then send POST requests to generate speech:
+The server will start at **http://localhost:5050**. Open this URL in your browser to see the API documentation and test the service!
+
+**Making API requests:**
 ```bash
 curl -X POST "http://localhost:5050/" \
   -H "Content-Type: application/json" \
